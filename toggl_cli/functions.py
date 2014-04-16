@@ -55,7 +55,6 @@ def get_data(key):
 
 	'''
 	with session() as r:
-		print api(key)
 		response = r.get(api(key))
 		content = response.content
 		if response.ok:
@@ -86,9 +85,9 @@ def send_data(key, params=None, data=None):
 		content = response.content
 		if response.ok:
 			json = simplejson.loads(content)
-			return json["data"]
+			return json
 		else:
-			exit("Please verify your login credentials...")
+			exit("API Error: " + response.content)
 
 
 def get_data_where(api, dataPair):
@@ -108,7 +107,8 @@ def get_data_where(api, dataPair):
 
 	# Data is an array of dicts. See if we find our datakey. If so,
 	# return it. If not, return false.
-
+	if data is None:
+		return None
 	for x in data:
 		if dataPair in x.items():
 			returnList.append(x)
@@ -134,7 +134,7 @@ def get_recent(apikey, keyList, numEntries=9):
 
 	'''
 	project = get_project(small=True)
-	entries = get_data_where(apikey, {"project":project})
+	entries = get_data_where(apikey, {"pid":project["id"]})
 
 	# Remove duplicates
 
@@ -163,7 +163,7 @@ def print_entries(entries, description, numToPrint=10):
 		if len(d) >= strLength - 3:
 			d = d[0:strLength-3] + "..."
 
-		p = x["project"]["client_project_name"]
+		#p = x["project"]["client_project_name"]
 		print fmtString.format(str(counter) + ".", d)
 		counter += 1
 
@@ -212,14 +212,13 @@ def new_time_entry(description, taskID=False):
 	end_time = datetime.datetime.utcnow()
 	time_difference = (end_time - start_time).seconds
 
-
 	# Data passed to the request
 	data = {
 			"duration": time_difference,
-			"start": start_time.isoformat(),
-			"stop": "null",
+			"start": start_time.isoformat() + "Z",
+			#"stop": "null",
 			"created_with": "Python Command Line Client",
-			"project": {"id":projectID},
+			"pid": projectID,
 			"description": description}
 
 	# If task Id was specified, add it to the data dict
@@ -228,7 +227,6 @@ def new_time_entry(description, taskID=False):
 
 	# Add to time_entry key
 	data = {"time_entry" : data }
-
 
 	send_data("time_entries", data=data)
 	print "Success."
@@ -309,20 +307,26 @@ def get_project(small=False):
 	small as True returns a project dict containing only id, name,
 	and client_project_name. Useful for passing as a parameter
 	'''
+	workspace = get_workspace()
+	apikey = "workspaces/" + str(workspace["id"]) + "/projects"
 	if "CLIENT" in TOGGL.keys():
 		# It's stored Client - Project under the API
 		tmp = TOGGL["CLIENT"] +" - "+ TOGGL["PROJECT"]
-		project = get_data_where("projects", {"client_project_name":tmp})
+		project = get_data_where(apikey, {"client_project_name":tmp})
 	else:
-		project = get_data_where("projects", {"name":TOGGL["PROJECT"]})
+		project = get_data_where(apikey, {"name":TOGGL["PROJECT"]})
+		if project is None:
+			exit("No projects found in this workspace")
+		elif project.__len__() == 0:
+			exit("Project " + TOGGL["PROJECT"] + " not found in workspace " + workspace["name"])
 
 	# Should only be one response
 	project = project[0]
 
 	if small:
 		return {"id":project["id"],
-				"name":project["name"],
-				"client_project_name": project["client_project_name"]}
+				"name":project["name"]
+				}
 	else:
 		return project
 
