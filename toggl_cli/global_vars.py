@@ -35,7 +35,7 @@ if "PASSWORD" not in TOGGL.keys():
 	TOGGL["PASSWORD"] = getpass.getpass("Your password: ")
 
 # API convenience vars
-API_PREFIX = "https://www.toggl.com/api/v6/"
+API_PREFIX = "https://www.toggl.com/api/v8/"
 AUTH = (TOGGL["EMAIL"], TOGGL["PASSWORD"])
 
 # Task prompt

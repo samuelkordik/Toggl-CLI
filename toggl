@@ -5,6 +5,7 @@
 # Toggl API. (https://www.toggl.com/public/api)
 # end.
 from toggl_cli.functions import *
+from toggl_cli.global_vars import *
 import sys, os
 
 menuStr = '''
@@ -37,7 +38,7 @@ while True:
 	if response == 1:
 		print "Getting recent Tasks..."
 		entries = get_recent("tasks", ["name", "project", "id"])
-		
+
 		# If an empty list, there are no tasks. Just get outta here!
 		if len(entries) == 0:
 			print "ERROR:No tasks were found. Returning to main menu."

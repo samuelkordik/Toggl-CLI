@@ -6,6 +6,7 @@
 import getpass, requests, os, time, datetime, sys, select, termios, tty
 from itertools import groupby
 
+
 # Resolve simplejson discrepancy
 try: import simplejson
 except ImportError: import json as simplejson
@@ -14,7 +15,7 @@ from urllib import urlencode
 
 def api(key, params=None):
 	'''
-	Return the API url call. 
+	Return the API url call.
 	Potential keys:
 		me
 		time_entries
@@ -31,33 +32,34 @@ def api(key, params=None):
 	'''
 
 	if params:
-		apiCall =  API_PREFIX + key + ".json?" + urlencode(params)
+		apiCall =  API_PREFIX + key + urlencode(params)
 	else:
-		apiCall =  API_PREFIX + key + ".json"
+		apiCall =  API_PREFIX + key
 	return apiCall
 
 def session(headers=None):
 	'''
 	Session wrapper for convenience
 	'''
+	r = requests.Session()
+	r.auth=AUTH
 	if headers:
-		return requests.session(auth=AUTH, headers=headers)
-	else:
-		return requests.session(auth=AUTH)
+		r.headers = headers
+	return r
 
 
 def get_data(key):
 	'''
 	Get data from API. See list of keys in the api function in
 	this document.
-	
+
 	'''
 	with session() as r:
+		print api(key)
 		response = r.get(api(key))
-
 		content = response.content
 		if response.ok:
-			json = simplejson.loads(content)["data"]
+			json = simplejson.loads(content)
 
 			# Reverse the list to get correct chronological order. Also,
 			# remove duplicates. But make sure this is actually a list!
@@ -81,7 +83,6 @@ def send_data(key, params=None, data=None):
 	data=simplejson.dumps(data)
 	with session(headers=headers) as r:
 		response = r.post(api(key), data=data)
-
 		content = response.content
 		if response.ok:
 			json = simplejson.loads(content)
@@ -93,7 +94,7 @@ def send_data(key, params=None, data=None):
 def get_data_where(api, dataPair):
 	'''
 	Output the dicionary of a specific datakey (such as 'name') with a
-	value (such as 'My Weekend Project' for a given apikey 
+	value (such as 'My Weekend Project' for a given apikey
 	(such as 'projects')
 	'''
 	data = get_data(api)
@@ -107,7 +108,7 @@ def get_data_where(api, dataPair):
 
 	# Data is an array of dicts. See if we find our datakey. If so,
 	# return it. If not, return false.
-	
+
 	for x in data:
 		if dataPair in x.items():
 			returnList.append(x)
@@ -123,12 +124,12 @@ def test_api(key):
 def get_recent(apikey, keyList, numEntries=9):
 	'''
 	Gets the latest instances of apikey that corresponds to the current
-	project. 
+	project.
 
-	keyList: List of keys you want to extract from the api call. 
+	keyList: List of keys you want to extract from the api call.
 	numEntries: Number of entries to get.
 
-	ex: get_recent("time_entries") returns recent time entries 
+	ex: get_recent("time_entries") returns recent time entries
 	for the project.
 
 	'''
@@ -142,15 +143,15 @@ def get_recent(apikey, keyList, numEntries=9):
 	else:
 		recent = remove_dups(entries, "description")
 	return recent[0:numEntries]
-		
+
 def print_entries(entries, description, numToPrint=10):
 	'''
-	Pretty print entries. Since some api calls have the description as 
+	Pretty print entries. Since some api calls have the description as
 	"description" and others have it as "name", we'll need to specify it
 	'''
 
 	# Ew, a bunch of string formatting
-	strLength = 60 
+	strLength = 60
 	counter = 1
 	maxCounterLen = len(str(numToPrint)) + 2
 	width = str(strLength + maxCounterLen)
@@ -167,12 +168,12 @@ def print_entries(entries, description, numToPrint=10):
 		counter += 1
 
 def new_time_entry(description, taskID=False):
-	''' 
+	'''
 	Creates a new time entry. Pass in a description string.
-	If this is a task (the PRO feature), set task to True. 
+	If this is a task (the PRO feature), set task to True.
 	'''
 
-	# Get the project ID of the client/project pair specified in 
+	# Get the project ID of the client/project pair specified in
 	# .toggl_project. Make sure it's valid now before they start the timer
 	# or they'll waste time in the event it's invalid
 	try:
@@ -184,7 +185,7 @@ def new_time_entry(description, taskID=False):
 		else:
 			print "The project " + TOGGL["PROJECT"] + " was not found"
 		exit("Exiting...")
-					
+
 
 
 	# Get the current time and store it. Then pause until the user
@@ -234,7 +235,7 @@ def new_time_entry(description, taskID=False):
 
 def dashes(string):
 	'''
-	Return a string of dashes the length of string. Just for pretty 
+	Return a string of dashes the length of string. Just for pretty
 	formatting
 	'''
 	return "-" * len(string)
@@ -267,13 +268,13 @@ def parse_file(fileLoc):
 
 def get_settings_from_file(fileLoc, theDict):
 	'''
-	parses file at fileLoc and searches for key:value pairs 
+	parses file at fileLoc and searches for key:value pairs
 
-	Alters theDict dictionary 
+	Alters theDict dictionary
 	'''
 	fileContents = parse_file(fileLoc)
 	for line in fileContents:
-		# Store the key value pair. Uppercase Key since it will be 
+		# Store the key value pair. Uppercase Key since it will be
 		# used in a global variable
 		tmp = line.split(":")
 		key = tmp[0].strip().upper()
@@ -285,7 +286,7 @@ def timer_start_print(description, time):
 	Print a message to let the user know that the timer has started
 	and how to stop it
 	'''
-	
+
 	print "\n"
 	print "=" * 50
 	print "Timer started!"
@@ -299,7 +300,7 @@ def timer_start_print(description, time):
 	print time.strftime("Started at: %I:%M%p")
 	print dashes(description)
 	print "Press Enter to stop timer... (CTRL-C to cancel)"
-	
+
 def get_project(small=False):
 	'''
 	Get the dictionary of the project specified in the .toggl_project file.
@@ -314,16 +315,42 @@ def get_project(small=False):
 		project = get_data_where("projects", {"client_project_name":tmp})
 	else:
 		project = get_data_where("projects", {"name":TOGGL["PROJECT"]})
-	
+
 	# Should only be one response
 	project = project[0]
-	
+
 	if small:
-		return {"id":project["id"], 
-				"name":project["name"], 
+		return {"id":project["id"],
+				"name":project["name"],
 				"client_project_name": project["client_project_name"]}
 	else:
 		return project
+
+def get_workspace(small=False):
+	'''
+	Gets the correct workspace.
+	'''
+	data = get_data("workspaces")
+	if data.__len__() == 1:
+		workspace = data[0]
+	else:
+		if "WORKSPACE" in TOGGL.keys():
+			workspace_name = TOGGL["WORKSPACE"]
+			workspace = False
+			for x in data:
+				if (x["name"] == workspace_name):
+					workspace = x
+			if workspace == False:
+				print workspace_name
+				exit("Workspace " + workspace_name + " not found for user.")
+		else:
+			exit("No workspace specified")
+	if small:
+		return {"id":workspace["id"],
+				"name":workspace["name"]
+				}
+	else:
+		return workspace
 
 def getkey():
 	'''
@@ -341,7 +368,7 @@ def remove_dups(theList, key):
 	pass in a list of dictionaries theList and get back theList without
 	duplicates
 
-	See stackoverflow: http://bit.ly/tmwTIm 
+	See stackoverflow: http://bit.ly/tmwTIm
 	'''
 	keyfunc = lambda d: (d[key])
 	giter = groupby(sorted(theList, key=keyfunc), keyfunc)

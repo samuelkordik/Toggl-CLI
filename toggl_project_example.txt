@@ -7,8 +7,10 @@
 # Password
 # Client
 # Project.
+# Workspace
 #
 # These will overwrite the settings in your ~/.toggl file.
 
 #Project: New Website
 #Client: New Client
+#Workspace: Workspace
